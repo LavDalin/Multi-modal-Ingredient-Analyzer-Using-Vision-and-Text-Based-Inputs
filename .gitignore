@@ -1,0 +1,20 @@
+# Secrets — never commit these
+.streamlit/secrets.toml
+.env
+
+# Virtual environments
+myenv/
+my_venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Editor / OS cruft
+.DS_Store
+.ipynb_checkpoints/
+
+# Scratch / test files not part of the deployed app
+TestKey.py
+Untitled.py
+Untitled.rtf
