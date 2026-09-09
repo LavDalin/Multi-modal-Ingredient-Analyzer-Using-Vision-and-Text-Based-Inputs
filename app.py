@@ -7,7 +7,28 @@ from phi.tools.tavily import TavilyTools
 from tempfile import NamedTemporaryFile
 from PIL import Image
 from io import BytesIO
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from constants import SYSTEM_PROMPT, INSTRUCTIONS
+
+AGENT_TIMEOUT_SECONDS = 45
+
+def run_with_timeout(fn, *args, timeout=AGENT_TIMEOUT_SECONDS, **kwargs):
+    """Run fn in a background thread and enforce a hard wall-clock timeout.
+
+    Some tool calls the agent can make (e.g. the Tavily web search, or the
+    Gemini API itself) have no built-in timeout, so a slow/unreachable
+    network call can hang agent.run() forever with no error and no log
+    output. This bounds that wait so the UI always resolves.
+    """
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(fn, *args, **kwargs)
+        try:
+            return future.result(timeout=timeout)
+        except FutureTimeoutError:
+            raise TimeoutError(
+                f"No response after {timeout}s — the AI service or web search is taking too "
+                "long to respond. Please try again in a moment."
+            )
 
 # ── Page config ─────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -383,7 +404,9 @@ def analyze_image(image_path):
     agent = get_agent()
     with st.spinner('Analyzing image...'):
         try:
-            response = agent.run("Analyze the given image", images=[image_path])
+            response = run_with_timeout(
+                agent.run, "Analyze the given image", images=[image_path]
+            )
             st.session_state.ingredients = response.content
             st.markdown(
                 '<div class="result-label">◈ &nbsp; Ingredient Report</div>',
@@ -393,6 +416,8 @@ def analyze_image(image_path):
         except google.api_core.exceptions.ResourceExhausted:
             st.error("⚠️ Google's Free Tier quota is temporarily exhausted.")
             st.info("This usually resets every 60 seconds — please wait a moment and try again.")
+        except TimeoutError as e:
+            st.error(f"⏱️ {e}")
         except Exception as e:
             st.error(f"An unexpected error occurred: {e}")
 
@@ -493,11 +518,13 @@ Now answer this question specifically based on the ingredients above:
 
         with st.spinner("Processing your question..."):
             try:
-                response = agent.run(prompt)
+                response = run_with_timeout(agent.run, prompt)
                 st.session_state.qa_history.append({
                     "q": user_question,
                     "a": response.content,
                 })
+            except TimeoutError as e:
+                st.error(f"⏱️ {e}")
             except Exception as e:
                 st.error(f"Error: {e}")
 
