@@ -395,9 +395,24 @@ def resize_image_for_display(image_file):
     img.save(buf, format="PNG")
     return buf.getvalue()
 
-def save_uploaded_file(uploaded_file):
+ANALYSIS_MAX_DIMENSION = 1600  # px, longest side — plenty to read a label, much lighter than a raw phone photo
+
+def save_uploaded_file(uploaded_file, max_dimension=ANALYSIS_MAX_DIMENSION, quality=85):
+    """Save the upload to a temp file, downscaled/compressed for the AI call.
+
+    Phone photos can be 4000px+ on a side and several MB — sending that
+    straight to the model adds real upload + processing latency. Ingredient
+    text is still perfectly legible at 1600px, so we shrink and re-encode
+    as JPEG before analysis (the on-screen preview is handled separately by
+    resize_image_for_display and is unaffected).
+    """
+    img = Image.open(uploaded_file).convert("RGB")
+    w, h = img.size
+    if max(w, h) > max_dimension:
+        scale = max_dimension / max(w, h)
+        img = img.resize((int(w * scale), int(h * scale)), Image.Resampling.LANCZOS)
     with NamedTemporaryFile(dir='.', suffix='.jpg', delete=False) as f:
-        f.write(uploaded_file.getbuffer())
+        img.save(f, format="JPEG", quality=quality, optimize=True)
         return f.name
 
 def analyze_image(image_path):
