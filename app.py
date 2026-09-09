@@ -1,5 +1,7 @@
 import streamlit as st
 import os
+import sys
+import time
 import google.api_core.exceptions
 from phi.agent import Agent
 from phi.model.google import Gemini
@@ -9,6 +11,11 @@ from PIL import Image
 from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from constants import SYSTEM_PROMPT, INSTRUCTIONS
+
+def log(msg):
+    """Print with a timestamp, flushed immediately, so it shows up live in
+    Streamlit Cloud's log viewer instead of being buffered."""
+    print(f"[{time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr, flush=True)
 
 AGENT_TIMEOUT_SECONDS = 75
 
@@ -371,13 +378,18 @@ os.environ['GOOGLE_API_KEY'] = st.secrets['GEMINI_KEY']
 # ── Agent ─────────────────────────────────────────────────────────────────────
 @st.cache_resource
 def get_agent():
-    return Agent(
+    log("Creating agent (should only happen once per app instance)...")
+    t0 = time.time()
+    agent = Agent(
         model=Gemini(id="gemini-3.6-flash"),
         system_prompt=SYSTEM_PROMPT,
         instructions=INSTRUCTIONS,
         tools=[TavilyTools(api_key=os.getenv("TAVILY_API_KEY"), search_depth="basic")],
         markdown=True,
+        show_tool_calls=True,
     )
+    log(f"Agent created in {time.time() - t0:.2f}s")
+    return agent
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 MAX_IMAGE_WIDTH = 300
@@ -417,11 +429,15 @@ def save_uploaded_file(uploaded_file, max_dimension=ANALYSIS_MAX_DIMENSION, qual
 
 def analyze_image(image_path):
     agent = get_agent()
+    size_kb = os.path.getsize(image_path) / 1024
+    log(f"analyze_image start — file={image_path} size={size_kb:.0f}KB")
     with st.spinner('Analyzing image... this can take up to a minute'):
+        t0 = time.time()
         try:
             response = run_with_timeout(
                 agent.run, "Analyze the given image", images=[image_path]
             )
+            log(f"analyze_image done in {time.time() - t0:.2f}s")
             st.session_state.ingredients = response.content
             st.markdown(
                 '<div class="result-label">◈ &nbsp; Ingredient Report</div>',
@@ -429,11 +445,14 @@ def analyze_image(image_path):
             )
             st.markdown(response.content)
         except google.api_core.exceptions.ResourceExhausted:
+            log(f"analyze_image ResourceExhausted after {time.time() - t0:.2f}s")
             st.error("⚠️ Google's Free Tier quota is temporarily exhausted.")
             st.info("This usually resets every 60 seconds — please wait a moment and try again.")
         except TimeoutError as e:
+            log(f"analyze_image TIMED OUT after {time.time() - t0:.2f}s: {e}")
             st.error(f"⏱️ {e}")
         except Exception as e:
+            log(f"analyze_image FAILED after {time.time() - t0:.2f}s: {type(e).__name__}: {e}")
             st.error(f"An unexpected error occurred: {e}")
 
 # ── App ───────────────────────────────────────────────────────────────────────
