@@ -423,7 +423,10 @@ def save_uploaded_file(uploaded_file, max_dimension=ANALYSIS_MAX_DIMENSION, qual
     if max(w, h) > max_dimension:
         scale = max_dimension / max(w, h)
         img = img.resize((int(w * scale), int(h * scale)), Image.Resampling.LANCZOS)
-    with NamedTemporaryFile(dir='.', suffix='.jpg', delete=False) as f:
+    # Use the system temp dir, not the app's working directory — on some
+    # hosts (e.g. Streamlit Cloud's mounted repo checkout) '.' isn't
+    # writable, which would raise before analysis ever starts.
+    with NamedTemporaryFile(suffix='.jpg', delete=False) as f:
         img.save(f, format="JPEG", quality=quality, optimize=True)
         return f.name
 
@@ -496,11 +499,17 @@ def main():
             )
             analyze_clicked = st.button("⬡ &nbsp; Analyze Photo", key="analyze_upload", type="primary")
         if analyze_clicked:
-            temp_path = save_uploaded_file(uploaded_file)
-            st.markdown('<div class="result-card">', unsafe_allow_html=True)
-            analyze_image(temp_path)
-            st.markdown('</div>', unsafe_allow_html=True)
-            os.unlink(temp_path)
+            log("Analyze Photo (upload) clicked")
+            try:
+                temp_path = save_uploaded_file(uploaded_file)
+                log(f"save_uploaded_file done -> {temp_path}")
+                st.markdown('<div class="result-card">', unsafe_allow_html=True)
+                analyze_image(temp_path)
+                st.markdown('</div>', unsafe_allow_html=True)
+                os.unlink(temp_path)
+            except Exception as e:
+                log(f"FAILED before/around analyze_image: {type(e).__name__}: {e}")
+                st.error(f"Couldn't prepare the image for analysis: {e}")
 
     # ── Camera Section ────────────────────────────────────────────────────────
     st.markdown('<div class="section-label">02 — Take Photo</div>', unsafe_allow_html=True)
@@ -522,11 +531,17 @@ def main():
                 )
                 analyze_clicked = st.button("⬡ &nbsp; Analyze Photo", key="analyze_camera", type="primary")
             if analyze_clicked:
-                temp_path = save_uploaded_file(camera_photo)
-                st.markdown('<div class="result-card">', unsafe_allow_html=True)
-                analyze_image(temp_path)
-                st.markdown('</div>', unsafe_allow_html=True)
-                os.unlink(temp_path)
+                log("Analyze Photo (camera) clicked")
+                try:
+                    temp_path = save_uploaded_file(camera_photo)
+                    log(f"save_uploaded_file done -> {temp_path}")
+                    st.markdown('<div class="result-card">', unsafe_allow_html=True)
+                    analyze_image(temp_path)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    os.unlink(temp_path)
+                except Exception as e:
+                    log(f"FAILED before/around analyze_image: {type(e).__name__}: {e}")
+                    st.error(f"Couldn't prepare the image for analysis: {e}")
             st.session_state.show_camera = False
 
     # ── Q&A Section ───────────────────────────────────────────────────────────
