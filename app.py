@@ -67,6 +67,17 @@ html, body, div, span, p, label, input, textarea, button {
     font-family: 'Nunito', 'Segoe UI', sans-serif !important;
     color: #3a3530;
 }
+/* Streamlit renders its built-in icons (upload cloud, camera, etc.) as
+   ligatures in an icon font — the text content is literally the icon's
+   name (e.g. "upload_file"), which only becomes a glyph if the icon font
+   is applied. The blanket rule above was overriding that font, so the
+   icon name showed up as stacked plain text instead of an icon. Restore
+   the icon font for anything Streamlit marks as an icon. */
+[data-testid="stIconMaterial"],
+[class*="material-icons"],
+[class*="material-symbols"] {
+    font-family: 'Material Symbols Rounded', 'Material Icons' !important;
+}
 
 /* ── Hide default Streamlit chrome ── */
 #MainMenu, footer, [data-testid="stDecoration"] { display: none !important; }
