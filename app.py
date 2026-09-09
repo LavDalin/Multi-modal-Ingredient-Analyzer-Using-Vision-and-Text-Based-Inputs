@@ -215,11 +215,21 @@ html, body, div, span, p, label, input, textarea, button {
 }
 /* The native "Browse files" button inside the dropzone — belt-and-suspenders
    on top of pinning the theme in .streamlit/config.toml, in case its
-   data-testid doesn't match our generic button rules. */
+   data-testid doesn't match our generic button rules. Styled to match the
+   bold secondary-button look below so it actually catches the eye. */
 [data-testid="stFileUploaderDropzone"] button {
-    background: #ffffff !important;
-    color: #3a3530 !important;
-    border: 1px solid #e0d5bf !important;
+    background: #fff0eb !important;
+    color: #e14526 !important;
+    border: 2px solid #ff5a36 !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    transition: all 0.2s ease !important;
+}
+[data-testid="stFileUploaderDropzone"] button:hover {
+    background: #ff5a36 !important;
+    color: #ffffff !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 18px rgba(255,90,54,0.28) !important;
 }
 
 /* ── Camera input ── */
@@ -250,15 +260,20 @@ html, body, div, span, p, label, input, textarea, button {
     transform: translateY(-1px) !important;
     box-shadow: 0 8px 22px rgba(255,90,54,0.32) !important;
 }
-/* Secondary buttons */
+/* Secondary buttons (e.g. Open Camera) — bold coral outline + tint fill so
+   they visually pop instead of blending into the page like a plain link. */
 [data-testid="stButton"] > button[kind="secondary"],
 [data-testid="stButton"] > button:not([kind]) {
-    background: #ffffff !important;
-    color: #ff5a36 !important;
-    border: 1px solid #ffd9cc !important;
+    background: #fff0eb !important;
+    color: #e14526 !important;
+    border: 2px solid #ff5a36 !important;
+    padding: 10px 20px !important;
 }
-[data-testid="stButton"] > button:hover {
-    border-color: #ff5a36 !important;
+[data-testid="stButton"] > button:not([kind="primary"]):hover {
+    background: #ff5a36 !important;
+    color: #ffffff !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 18px rgba(255,90,54,0.28) !important;
 }
 
 /* ── Text input ── */
