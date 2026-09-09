@@ -10,7 +10,7 @@ from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from constants import SYSTEM_PROMPT, INSTRUCTIONS
 
-AGENT_TIMEOUT_SECONDS = 45
+AGENT_TIMEOUT_SECONDS = 75
 
 def run_with_timeout(fn, *args, timeout=AGENT_TIMEOUT_SECONDS, **kwargs):
     """Run fn in a background thread and enforce a hard wall-clock timeout.
@@ -375,7 +375,7 @@ def get_agent():
         model=Gemini(id="gemini-3.6-flash"),
         system_prompt=SYSTEM_PROMPT,
         instructions=INSTRUCTIONS,
-        tools=[TavilyTools(api_key=os.getenv("TAVILY_API_KEY"))],
+        tools=[TavilyTools(api_key=os.getenv("TAVILY_API_KEY"), search_depth="basic")],
         markdown=True,
     )
 
@@ -402,7 +402,7 @@ def save_uploaded_file(uploaded_file):
 
 def analyze_image(image_path):
     agent = get_agent()
-    with st.spinner('Analyzing image...'):
+    with st.spinner('Analyzing image... this can take up to a minute'):
         try:
             response = run_with_timeout(
                 agent.run, "Analyze the given image", images=[image_path]
