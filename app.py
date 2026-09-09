@@ -202,6 +202,14 @@ html, body, div, span, p, label, input, textarea, button {
 [data-testid="stFileUploaderDropzone"] small {
     color: #b3aa9c !important;
 }
+/* The native "Browse files" button inside the dropzone — belt-and-suspenders
+   on top of pinning the theme in .streamlit/config.toml, in case its
+   data-testid doesn't match our generic button rules. */
+[data-testid="stFileUploaderDropzone"] button {
+    background: #ffffff !important;
+    color: #3a3530 !important;
+    border: 1px solid #e0d5bf !important;
+}
 
 /* ── Camera input ── */
 [data-testid="stCameraInput"] video,
